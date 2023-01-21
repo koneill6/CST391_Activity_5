@@ -1,0 +1,79 @@
+import React from "react";
+import { Router, Route, Switch } from "react-router-dom";
+import { createBrowserHistory } from "history";
+import SearchForm from "./SearchForm";
+import AlbumList from "./AlbumList";
+import NavBar from "./NavBar";
+import NewAlbum from "./NewAlbum";
+import OneAlbum from "./OneAlbum";
+import "./App.css";
+import dataSource from "./dataSource";
+
+const history = createBrowserHistory({basename: '.'});
+
+class App extends React.Component
+{
+      state = { albumList: [ ], searchPhrase: "", currentlySelectedalbumId: -1}
+
+     componentDidMount()
+     {
+          this.loadAlbums();
+     }
+
+     loadAlbums = async () =>
+     {
+          const response = await dataSource.get('/albums');
+          this.setState( {albumList: response.data} );
+     }
+
+     updateSearchResults = async (phrase) =>
+     {
+          console.log("phrase is " + phrase);
+          this.setState( {searchPhrase: phrase});
+          const response = await dataSource.get('/albums/search/description/' + phrase);
+          this.setState( {albumList: response.data} );
+     }
+
+     updateSingleAlbum = (id) =>
+     {
+          console.log("Update Single Album = ", id);
+          var indexNumber = 0;
+          for(var i=0;i < this.state.albumList.length;++i)
+          {
+               if(this.state.albumList[i].id === id)
+                    indexNumber = i;
+          }
+          this.setState( {currentlySelectedalbumId: indexNumber},
+               history.push("/show/" + indexNumber)
+          );
+     }
+
+     render()
+     {
+          return (
+               <Router history={history}>
+                    <div>
+                         <NavBar />
+                         <Switch>
+                              <Route exact path="/" render ={ () => {
+                                        return (
+                                             <div className="container">
+                                                  <SearchForm onSubmit={this.updateSearchResults} />
+                                                  <AlbumList albumList={this.state.albumList} onClick={this.updateSingleAlbum} />
+                                             </div> 
+               
+                                        )
+                                   }
+                              } />
+                         </Switch>
+                         <Route exact path="/new" component={ NewAlbum } />
+                         <Route exact path="/show/:albumId" render = {
+                              () => <OneAlbum album={this.state.albumList[this.state.currentlySelectedalbumId]} />
+                         } />
+                     </div>
+               </Router> )
+
+     }
+}
+
+export default App;
